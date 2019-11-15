@@ -1,3 +1,5 @@
+__author__ = 'anton.salman@gmail.com'
+
 import os
 from typing import Sequence
 

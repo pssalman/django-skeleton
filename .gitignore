@@ -112,4 +112,4 @@ public/media/
 # Environment variables
 run/.env
 run/.envs/*
-!run/.envs/.local/
+!run/.envs/.production/
