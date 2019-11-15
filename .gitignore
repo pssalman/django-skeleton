@@ -102,3 +102,14 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+### Project template
+
+public/media/
+
+.ipython/
+
+# Environment variables
+run/.env
+run/.envs/*
+!run/.envs/.local/
