@@ -1,0 +1,191 @@
+version: '3.7'
+
+services:
+  cache-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+      cache_from:
+        - skeleton/cache:latest
+      labels:
+        com.example.description: "BWEB Webapp Cache"
+        com.example.department: "IT"
+        com.example.label-with-empty-value: ""
+    image: skeleton/cache:latest
+    networks:
+      - buildnet
+  web-1: &python
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+      cache_from:
+        - skeleton/cache:latest
+        - skeleton:latest
+      args:
+        PROJECT_NAME: bweb
+        ENV: test
+        PORT: 8000
+        BUILD_NUMBER: 1
+        COMMIT_HASH: cdc3b19
+        ADMIN_PASSWORD: 'tony8227'
+      labels:
+        com.example.description: "BWEB Webapp"
+        com.example.department: "IT"
+        com.example.label-with-empty-value: ""
+    image: skeleton:latest
+    container_name: wz01
+    hostname: wz01
+    environment:
+      ADMIN_PASSWORD: 'tony8227'
+    expose:
+      - 8000
+    volumes:
+      - web-django:/app/src
+      - web-static:/app/src/public/static
+      - web-media:/app/src/public/media
+      - sql-django:/app/src/run
+    depends_on:
+      - database-1
+      - cache-1
+      - rabbitmq-1
+      - memcache-1
+      - memcache-2
+      - memcache-3
+      - redis-1
+    networks:
+      - buildnet
+      - dbnet
+      - webnet
+  database-1:
+    restart: always
+    image: postgres:11.1
+    container_name: dz01
+    hostname: dz01
+    environment:
+      POSTGRES_USER: 'bweb_usr'
+      POSTGRES_PASSWORD: 'bweb#18@local'
+      POSTGRES_DB: 'bweb_db'
+      POSTGRES_PORT: 5432
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - dbnet
+  rabbitmq-1:
+    restart: always
+    image: rabbitmq:3.7-management-alpine
+    container_name: mz01
+    hostname: mz01
+    environment:
+      RABBITMQ_DEFAULT_USER: 'user'
+      RABBITMQ_DEFAULT_PASS: 'password'
+    expose:
+      - 5672
+    ports:
+      - 8081:15672
+    networks:
+      - mqnet
+  redis-1:
+    restart: always
+    image: redis:latest
+    container_name: rz01
+    hostname: rz01
+    expose:
+      - 6379
+    volumes:
+      - redisdata:/data
+    networks:
+      - dbnet
+  nginx-1:
+    restart: always
+    build: 
+      context: ./nginx/
+      dockerfile: Dockerfile
+      args:
+        PROJECT_NAME: bweb
+        ENV: prod
+        BUILD_NUMBER: 1
+        COMMIT_HASH: cdc3b19
+      labels:
+        com.example.description: "Nginx Proxy Web Server"
+        com.example.department: "IT"
+        com.example.label-with-empty-value: ""
+    image: skeleton/nginx:latest
+    container_name: nz01
+    hostname: nz01
+    ports:
+      - 80:80
+    volumes:
+      - web-static:/app/src/public/static
+      - web-media:/app/src/public/media
+    depends_on:
+      - web-1
+    networks:
+      - webnet
+  memcache-1:
+    restart: always
+    image: memcached:latest
+    container_name: cz01
+    hostname: cz01
+    expose:
+      - 11212
+    networks:
+      - dbnet
+  memcache-2:
+    restart: always
+    image: memcached:latest
+    container_name: cz02
+    hostname: cz02
+    expose:
+      - 11212
+    networks:
+      - dbnet
+  memcache-3:
+    restart: always
+    image: memcached:latest
+    container_name: cz03
+    hostname: cz03
+    expose:
+      - 11212
+    networks:
+      - dbnet
+  celery_worker:
+    <<: *python
+    container_name: cw01
+    hostname: cw01
+    #entrypoint: ["python", "manage.py", "makemigrations", "&&", "python", "manage.py", "migrate"]
+    command: celery -A conf worker --loglevel=info -Q celery
+    ports: []
+    depends_on:
+      - database-1
+      - cache-1
+      - rabbitmq-1
+      - memcache-1
+      - memcache-2
+      - memcache-3
+      - redis-1
+      - web-1
+    networks:
+      - buildnet
+      - dbnet
+volumes:
+  pgdata:
+  redisdata:
+  web-django:
+  web-static:
+  web-media:
+  sql-django:
+networks:
+  # docker network create composenet
+  default:
+    external:
+      name: composenet
+  webnet:
+    driver: bridge
+  dbnet:
+    driver: bridge
+  buildnet:
+    driver: bridge

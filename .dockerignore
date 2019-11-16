@@ -1,0 +1,13 @@
+.DS_Store
+.dockerignore
+.git/
+.gitignore
+.cache
+.tox
+.tx
+README.rst
+README.md
+__pycache__
+*.pyc
+node_modules/
+**/public/

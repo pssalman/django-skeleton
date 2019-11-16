@@ -20,14 +20,16 @@ LOCAL_IP = str(socket.gethostbyname(socket.gethostname()))
 print('hostname: ' + socket.gethostname())
 print('hostbyip: ' + LOCAL_IP)
 
+print('Using native server (sqlite3)')
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
+        'NAME': os.path.join(RUN_ROOT, 'db.sqlite3'),
+        'CONN_MAX_AGE': 600,  # 10 Minutes
+    },
 }
 
 MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]  # noqa F405

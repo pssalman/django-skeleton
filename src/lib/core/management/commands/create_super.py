@@ -25,7 +25,7 @@ class Command(BaseCommand):
             for user in settings.ADMINS:
                 username = user[0].replace(' ', '')
                 email = user[1]
-                password = os.environ['ADMIN_PASSWORD']
+                password = os.environ.get('ADMIN_PASSWORD', 12345678)
                 print(f'Creating account for {username} - {email}')
                 admin = User.objects.create_superuser(
                     email=email, username=username,

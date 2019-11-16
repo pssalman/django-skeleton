@@ -1,0 +1,73 @@
+# Pull base image
+FROM python:3.6-alpine
+
+LABEL version="1.0" \
+      description="django app base image" \
+      maintainer="Anton Salman <anton.salman@gmail.com>"
+
+# Available Options - dev and prod
+ARG ENV
+ENV ENV ${ENV}
+
+# Set environment varibles
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+ENV PIP_NO_CACHE_DIR true
+
+# Create user to run app
+RUN addgroup -g 1000 -S django && \
+    adduser -u 1000 -S django -G django
+
+# Set work directory
+RUN mkdir -p /app/src && chown -R django:django /app/src
+WORKDIR /app/src
+
+# install systemc dependencies
+#RUN apk add --no-cache --update python3-dev gcc build-base
+RUN apk add --no-cache 
+RUN apk add --no-cache --upgrade \
+       --repository http://dl-cdn.alpinelinux.org/alpine/edge/main \
+       gettext \
+       libpq \
+       postgresql-client \
+       netcat-openbsd \
+    && apk add --no-cache --upgrade \
+          --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing \
+          geos \
+          proj \
+          gdal \
+    && ln -s /usr/lib/libproj.so.13 /usr/lib/libproj.so \
+    && ln -s /usr/lib/libgdal.so.20 /usr/lib/libgdal.so \
+    && ln -s /usr/lib/libgeos_c.so.1 /usr/lib/libgeos_c.so \
+    && rm -rf /var/cache/apk/*
+
+RUN apk add --no-cache --virtual .build-deps \
+    gcc \
+    build-base
+
+# Install dependencies
+RUN pip install --upgrade pip
+
+# Python Virtual Environment Package Management
+RUN pip install --upgrade pipenv
+
+COPY ./Pipfile* ./
+
+#RUN pipenv install --deploy --system --dev
+RUN pipenv install --deploy --system --clear
+
+RUN apk del .build-deps \
+    && rm -rf /root/.cache/pip/*
+
+# copy entrypoint.sh
+COPY --chown=django:django ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Copy project
+COPY --chown=django:django ./src /app/src
+
+USER django
+
+# run entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

@@ -12,17 +12,40 @@ from .base import env
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["isupportec.com"])
 
-INSTALLED_APPS += ['storages', 'anymail']  # noqa F405
+INSTALLED_APPS += [
+    'storages',
+    'anymail',
+    'health_check',
+    # required
+    'health_check.db',
+    # stock Django health checkers
+    'health_check.cache',
+    'health_check.storage',
+    # requires celery
+    'health_check.contrib.celery',
+    # disk and memory utilization; requires psutil
+    'health_check.contrib.psutil',
+    # requires boto and S3BotoStorage backend
+    'health_check.contrib.s3boto_storage',
+    'health_check.contrib.rabbitmq',
+]  # noqa F405
 
 # Database
-# https://docs.djangoproject.com/en/2.2/ref/settings/#databases
+# https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': env('DB_ENGINE'),
+        'NAME': env('DB_NAME'),
+        'USER': env('DB_USER'),
+        'PASSWORD': env('DB_PASSWORD'),
+        'HOST': env('DB_HOST'),
+        'PORT': env('DB_PORT'),
+        'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE'),
+        'ATOMIC_REQUESTS': env.bool('DB_ATOMIC_REQUESTS', default=True),
     }
 }
+
 # SECURITY
 # ------------------------------------------------------------------------------
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -38,6 +61,10 @@ SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)
 SECURE_CONTENT_TYPE_NOSNIFF = env.bool(
     "DJANGO_SECURE_CONTENT_TYPE_NOSNIFF", default=True
 )
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 86400  # set just 30 minutes to test
+SESSION_SAVE_EVERY_REQUEST = True
 
 LOGGING = {
     'version': 1,
